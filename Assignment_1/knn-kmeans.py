@@ -1,17 +1,8 @@
-import torch
-import torchvision
-from torch.utils.data import DataLoader
-from torchvision import datasets, transforms  # Contains the CIFAR-10 Dataset
-from torchvision.transforms import ToTensor, Compose  # Tensor is used to encode the inputs and outputs
+from torchvision import datasets  # Contains the CIFAR-10 Dataset
+from torchvision.transforms import ToTensor  # Tensor is used to encode the inputs and outputs
 import numpy as np
 import matplotlib.pyplot as plt     # Used to help visualize data
-import scipy.stats
 
-
-def compute_distances(X_Train, X):
-    # Distances formula from: https://medium.com/@souravdey/l2-distance-matrix-vectorization-trick-26aa3247ac6c
-    distances = -2 * np.dot(X, X_Train.T) + np.sum(X_Train**2, axis=1) + np.sum(X**2, axis=1)[:, np.newaxis]
-    return distances
 
 # kNN Algorithm:
 # 1. Choose the value of K
@@ -20,6 +11,11 @@ def compute_distances(X_Train, X):
 #   - Store the Euclidean distances in a list and sort it
 #   - Choose the first k points
 #   - Assign a class to the test point based on the majority of classes present in the chosen points
+
+def compute_distances(X_Train, X):
+    # Distances formula from: https://medium.com/@souravdey/l2-distance-matrix-vectorization-trick-26aa3247ac6c
+    distances = -2 * np.dot(X, X_Train.T) + np.sum(X_Train**2, axis=1) + np.sum(X**2, axis=1)[:, np.newaxis]
+    return distances
 
 
 def knn_predict(y_train, dists, k=3):
@@ -40,7 +36,8 @@ def knn_predict(y_train, dists, k=3):
 def knn_accuracy(y_prediction, y_test, num_test):
     correct = np.sum(y_prediction == y_test)
     accuracy = (float(correct) / num_test) * 100
-    print("Correct: %d/%d\nAccuracy: %f" % (correct, num_test, accuracy))
+    # print("Correct: %d/%d\nAccuracy: %f" % (correct, num_test, accuracy))
+    return accuracy
 
 # KMeans Algorithm:
 # 1. Specify number of cluster's K.
@@ -80,13 +77,6 @@ def closest_cluster(dist):
     return np.argmin(dist, axis=1)
 
 
-def compute_sse(X, labels, centroids, num_cluster):
-    distance = np.zeros(X.shape[0])
-    for k in range(num_cluster):
-        distance[labels == k] = np.linalg.norm(X[labels == k] - centroids[k], axis=1)
-    return np.sum(np.square(distance))
-
-
 def fit_kmeans(X, X_Train,  k=7):
     num_cluster = k
     random_state = 123
@@ -101,8 +91,7 @@ def fit_kmeans(X, X_Train,  k=7):
         centroids = compute_centroids(X_Train, num_cluster, labels)
         if np.all(old_centroids == centroids):
             break
-    #error = compute_sse(X_Train, labels, centroids, num_cluster)
-    #print(error)
+
     kmean_prediction = kmeans_prediction(X, centroids, num_cluster)
 
     return kmean_prediction
@@ -119,6 +108,42 @@ def kmeans_accuracy(kmeans_prediction, y_test, num_test):
     print("Correct: %d/%d\nAccuracy: %f" % (correct, num_test, accuracy))
 
 
+def cross_validation(X_train, X_test, y_train, y_test, num_test):
+    folds = 5
+    k_list = [3, 5, 7, 11]
+
+    X_train_folds = []
+    y_train_folds = []
+
+    X_train_folds = np.array_split(X_train, folds)
+    y_train_folds = np.array_split(y_train, folds)
+    k_accuracy = {}
+
+    for k in k_list:
+        k_accuracy[k] = []
+        for k_num in range(0, folds):
+            X_test = X_train_folds[k_num]
+            y_test = y_train_folds[k_num]
+            X_train = X_train_folds
+            y_train = y_train_folds
+
+            tmp = np.delete(X_train, k_num, axis=0)
+            X_train = np.concatenate((tmp), axis=0)
+            y_train = np.delete(y_train, k_num, axis=0)
+            y_train = np.concatenate((y_train), axis=0)
+
+            distances = compute_distances(X_train, X_test)
+            prediction = knn_predict(y_train, distances, k)
+
+            accuracy = knn_accuracy(prediction, y_test, num_test)
+            k_accuracy[k].append(accuracy)
+
+    print("5-Fold Accuracies for k: \n")
+    for k in sorted(k_accuracy):
+        for acc in k_accuracy[k]:
+            print("k = %d, accuracy = %f" % (k, acc))
+
+
 def main():
     # Download CIFAR-10 to a folder called 'data'
     train_dataset = datasets.CIFAR10(root='data/', download=True, train=True, transform=ToTensor())
@@ -127,29 +152,31 @@ def main():
     np.set_printoptions(threshold=np.inf)   # Allows printing of 50000 items
 
     # Get training data (n = 50000) and labels from the dataset
-    x_train = train_dataset.data
+    X_train = train_dataset.data
     y_train = np.array(train_dataset.targets)
-    x_train_reshaped = x_train.reshape((50000, 32 * 32 * 3)).astype('float')  # In the form of a np.array
+    X_train_reshaped = X_train.reshape((50000, 32 * 32 * 3)).astype('float')  # In the form of a np.array
     # Get test data (n = 10000) and labels from the dataset
-    x_test = test_dataset.data
+    X_test = test_dataset.data
     y_test = np.array(test_dataset.targets)
-    x_test_reshaped = x_test.reshape((10000, 32 * 32 * 3)).astype('float')  # In the form of a np.array
+    X_test_reshaped = X_test.reshape((10000, 32 * 32 * 3)).astype('float')  # In the form of a np.array
 
-    num_test = x_test_reshaped.shape[0]
+    num_test = X_test_reshaped.shape[0]
 
     classes = train_dataset.classes     # Image class names from CIFAR-10
 
-    distances = compute_distances(x_train_reshaped, x_test_reshaped)
-    y_prediction = knn_predict(y_train, distances, k=11)
+    # distances = compute_distances(X_train_reshaped, X_test_reshaped)
+    cross_validation(X_train_reshaped, X_test_reshaped, y_train, y_test, num_test)
+    # y_prediction = knn_predict(y_train, distances, k=11)
 
     # Print the accuracy results of our kNN implementation
-    knn_accuracy(y_prediction, y_test, num_test)
+    # knn_accuracy(y_prediction, y_test, num_test)
 
     # Start testing K-Means
-    squared_norms = np.square(distances)        # Could be useful to compute centroids distances
-    kmean_prediction = fit_kmeans(x_test_reshaped, x_train_reshaped, k=3)
+    # squared_norms = np.square(distances)        # Could be useful to compute centroids distances
+    # kmean_prediction = fit_kmeans(X_test_reshaped, X_train_reshaped, k=3)
 
-    kmeans_accuracy(kmean_prediction, y_test, num_test)
+    # kmeans_accuracy(kmean_prediction, y_test, num_test)
+
 
 if __name__ == '__main__':
     main()
