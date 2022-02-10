@@ -4,6 +4,8 @@ import numpy as np
 import matplotlib.pyplot as plt     # Used to help visualize data
 
 
+max_iter = 300
+
 # kNN Algorithm:
 # 1. Choose the value of K
 # 2. For each point in test data:
@@ -11,6 +13,7 @@ import matplotlib.pyplot as plt     # Used to help visualize data
 #   - Store the Euclidean distances in a list and sort it
 #   - Choose the first k points
 #   - Assign a class to the test point based on the majority of classes present in the chosen points
+
 
 def compute_distances(X_Train, X):
     # Distances formula from: https://medium.com/@souravdey/l2-distance-matrix-vectorization-trick-26aa3247ac6c
@@ -36,7 +39,7 @@ def knn_predict(y_train, dists, k=3):
 def knn_accuracy(y_prediction, y_test, num_test):
     correct = np.sum(y_prediction == y_test)
     accuracy = (float(correct) / num_test) * 100
-    # print("Correct: %d/%d\nAccuracy: %f" % (correct, num_test, accuracy))
+    #print("Correct: %d/%d\nAccuracy: %f" % (correct, num_test, accuracy))
     return accuracy
 
 # KMeans Algorithm:
@@ -164,12 +167,12 @@ def main():
 
     classes = train_dataset.classes     # Image class names from CIFAR-10
 
-    # distances = compute_distances(X_train_reshaped, X_test_reshaped)
-    cross_validation(X_train_reshaped, X_test_reshaped, y_train, y_test, num_test)
-    # y_prediction = knn_predict(y_train, distances, k=11)
+    distances = compute_distances(X_train_reshaped, X_test_reshaped)
+    # cross_validation(X_train_reshaped, X_test_reshaped, y_train, y_test, num_test)
+    y_prediction = knn_predict(y_train, distances, k=11)
 
     # Print the accuracy results of our kNN implementation
-    # knn_accuracy(y_prediction, y_test, num_test)
+    knn_accuracy(y_prediction, y_test, num_test)
 
     # Start testing K-Means
     # squared_norms = np.square(distances)        # Could be useful to compute centroids distances
