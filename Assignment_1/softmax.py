@@ -42,7 +42,7 @@ def softmax_fit(W, X, y, lr=1e-5, regression=1e-3):
     _, N = X.shape
     loss_history = []
     for i in range(1000):
-        idx = np.random.choice(N, 200, replace=True)
+        idx = np.random.choice(N, 256, replace=True)
         X_batch = X[:, idx]
         y_batch = y[idx]
 
