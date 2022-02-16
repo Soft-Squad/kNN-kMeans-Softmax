@@ -1,9 +1,6 @@
-import warnings
-
 from torchvision import datasets  # Contains the CIFAR-10 Dataset
 from torchvision.transforms import ToTensor  # Tensor is used to encode the inputs and outputs
 import numpy as np
-import matplotlib.pyplot as plt     # Used to help visualize data
 import random
 
 
@@ -25,9 +22,7 @@ def compute_distances(X_Train, X):
 
 
 def knn_predict(y_train, dists, k=3):
-    # print(k)
     num_test = dists.shape[0]
-    # print(num_test)
     y_pred = np.zeros(num_test)
     for i in range(num_test):
         closest_y = []
@@ -42,7 +37,6 @@ def knn_predict(y_train, dists, k=3):
 def knn_accuracy(y_prediction, y_test, num_test):
     correct = np.sum(y_prediction == y_test)
     accuracy = (float(correct) / num_test) * 100
-    #print("Correct: %d/%d\nAccuracy: %f" % (correct, num_test, accuracy))
     return accuracy
 
 
@@ -118,14 +112,13 @@ def compute_sse(X, centroids, a_centroids):
 
 def kmeans_fit(X_train, X, centroids, k=3):
     np.random.shuffle(X_train)      # Shuffles Data
-    random.seed(0)                  # Set for reproducibility
+    np.random.seed(0)                  # Set for reproducibility
 
-    # centroids = init_centroids(X_train, k)
     a_centroids = np.zeros(len(X_train), dtype=np.int32)
 
     sse_list = []
 
-    for n in range(50):
+    for n in range(25):
         a_centroids = closet_centroid(X_train[:, None, :], centroids[None, :, :])
         for c in range(k):
             cluster = X_train[a_centroids == c]
@@ -143,17 +136,18 @@ def kmeans_fit(X_train, X, centroids, k=3):
 def kmeans_accuracy(y_pred, y_test, num_test):
     correct = np.sum(y_pred == y_test)
     accuracy = (float(correct) / num_test) * 100
-    #print("Correct: %d/%d\nAccuracy: %f" % (correct, num_test, accuracy))
     return accuracy
 
 
-def kmeans_cross_validation(X_train, X_test, y_test, num_test):
+def kmeans_cross_validation(X_train, X_test, y_train, y_test, num_test):
     folds = 5
     k_list = [3, 5, 7, 11]
 
     X_train_folds = []
+    y_train_folds = []
 
     X_train_folds = np.array_split(X_train, folds)
+    y_train_folds = np.array_split(y_train, folds)
     k_accuracy = {}
 
     for k in k_list:
@@ -161,10 +155,14 @@ def kmeans_cross_validation(X_train, X_test, y_test, num_test):
         k_accuracy[k] = []
         for k_num in range(0, folds):
             X_test = X_train_folds[k_num]
+            y_test = y_train_folds[k_num]
             X_train = X_train_folds
+            y_train = y_train_folds
 
             tmp = np.delete(X_train, k_num, axis=0)
             X_train = np.concatenate((tmp), axis=0)
+            y_train = np.delete(y_train, k_num, axis=0)
+            y_train = np.concatenate((y_train), axis=0)
 
             prediction = kmeans_fit(X_train, X_test, centroids, k)
 
@@ -197,17 +195,10 @@ def main():
 
     classes = train_dataset.classes     # Image class names from CIFAR-10
 
-    # distances = compute_distances(X_train_reshaped, X_test_reshaped)
-    # kNN_cross_validation(X_train_reshaped, X_test_reshaped, y_train, y_test, num_test)
-    # y_prediction = knn_predict(y_train, distances, k=11)
-
-    # Print the accuracy results of our kNN implementation
-    #knn_accuracy(y_prediction, y_test, num_test)
+    kNN_cross_validation(X_train_reshaped, X_test_reshaped, y_train, y_test, num_test)
 
     # Start testing K-Means
-    kmeans_cross_validation(X_train_reshaped, X_test_reshaped, y_test, num_test)
-    # kmean_prediction = kmeans_fit(X_train_reshaped, X_test_reshaped, k=3)
-    # kmeans_accuracy(kmean_prediction, y_test, num_test)
+    kmeans_cross_validation(X_train_reshaped, X_test_reshaped, y_train, y_test, num_test)
 
 
 if __name__ == '__main__':

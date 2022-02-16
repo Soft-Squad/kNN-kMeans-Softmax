@@ -57,11 +57,11 @@ def softmax_fit(W, X, y, lr=1e-5, regression=1e-3):
 def softmax_loss(W, X, y, regression):
     f = np.dot(W, X)
     f -= np.max(f, axis=0)
-    P = np.exp(f) / np.sum(np.exp(f), axis=0)
-    L = -1 / len(y) * np.sum(np.log(P[y, range(len(y))]))
+    P = np.exp(f) / np.sum(np.exp(f), axis=0)       # Softmax
+    L = -1 / len(y) * np.sum(np.log(P[y, range(len(y))]))   # Loss
     R = 0.5 * np.sum(np.multiply(W, W))
 
-    loss = L + R * regression
+    loss = L + R * regression       # Total loss
 
     P[y, range(len(y))] -= 1
     dW = 1 / len(y) * P.dot(X.T) + regression * W
@@ -76,8 +76,6 @@ def softmax_predict(W, X):
 
 
 def softmax_accuracy(y_pred, y_test, num_test):
-    print(y_test.shape)
-    print(y_pred.shape)
     correct = np.sum(y_test == y_pred)
     accuracy = (float(correct) / num_test) * 100
     print("Correct: %d/%d\nAccuracy: %f" % (correct, num_test, accuracy))
