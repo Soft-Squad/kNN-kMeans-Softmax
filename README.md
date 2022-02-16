@@ -1,3 +1,3 @@
-# CSC421 - Intro to Artificial Intelligence 
+# kNN-kMeans-Softmax
 
-Course work for Spring 2022
+
